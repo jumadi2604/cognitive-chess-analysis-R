@@ -3,7 +3,7 @@
 > 🇬🇧 **English summary:** Freelance statistical consulting project 
 > analyzing the relationship between cognitive performance 
 > (attention, working memory) and competitive chess level (ELO) 
-> in Colombian elite players. Built with R and Quarto.
+> in Antioqui/Colombian elite players. Built with R and Quarto.
 
 ---
 
@@ -17,7 +17,7 @@ colombianos de alto rendimiento.
 ## Contexto
 
 Consultoría estadística freelance para proyecto de grado en 
-Educación Física — Colombia, 2025. Datos anonimizados con 
+Educación Física — Colombia, 2026. Datos anonimizados con 
 autorización del autor.
 
 ## ¿Qué incluye?
