@@ -1,0 +1,515 @@
+---
+title: "Análisis Descriptivo: prueba D2R y prueba  Dígitos"
+subtitle: "Proyecto de Grado"
+author: "Santiago Ospina Castro"
+format:
+  pdf:
+    toc: true
+    toc-title: "Contenido"
+    number-sections: true
+    colorlinks: true
+    fig-pos: "H"
+---
+
+```{r}
+#| label: setup
+#| include: false
+
+library(tidyverse) 
+library(readxl)
+library(knitr)
+library(kableExtra)
+
+
+select <- dplyr::select
+
+d2r     <- read_excel("BD_d2R_corregida.xlsx", sheet = "D2R")
+digitos <- read_excel("BD_d2R_corregida.xlsx", sheet = "Digitos")
+
+# Función descriptiva reutilizable
+descriptivos <- function(df, vars) {
+  df |>
+    select(all_of(vars)) |>
+    pivot_longer(everything(), names_to = "Variable", values_to = "valor") |>
+    group_by(Variable) |>
+    summarise(
+      n       = n(),
+      Media   = round(mean(valor, na.rm = TRUE), 2),
+      Mediana = round(median(valor, na.rm = TRUE), 2),
+      DE      = round(sd(valor, na.rm = TRUE), 2),
+      Mín     = round(min(valor, na.rm = TRUE), 2),
+      Máx     = round(max(valor, na.rm = TRUE), 2),
+      .groups = "drop"
+    )
+}
+```
+
+# Prueba D2R
+
+La prueba D2R evalúa atención sostenida, atención selectiva y concentración. Se registraron 12 líneas organizadas en 4 bloques de 3 líneas cada uno. Para cada bloque se analiza el resultado (respuestas correctas), las omisiones y las comisiones. Finalmente se presentan los totales globales de la prueba.
+
+## Estadísticos descriptivos por bloques
+
+```{r}
+#| label: tbl-d2r-bloques
+#| tbl-cap: "Estadísticos descriptivos D2R por bloque"
+#| echo: false
+#| warning: false
+vars_bloques <- list(
+  "Bloque 1" = c("Resultado bloque 1", "Falta B1", "Comi B1"),
+  "Bloque 2" = c("Resultado bloque 2", "Falta B2", "Comi B2"),
+  "Bloque 3" = c("Resultado bloque 3", "Falta B3", "Comi B3"),
+  "Bloque 4" = c("Resultado bloque 4", "Falta B4", "Comi B4")
+)
+
+etiquetas_bloque <- c(
+  "Resultado bloque 1" = "Aciertos",
+  "Resultado bloque 2" = "Aciertos",
+  "Resultado bloque 3" = "Aciertos",
+  "Resultado bloque 4" = "Aciertos",
+  "Falta B1" = "Omisiones", "Falta B2" = "Omisiones",
+  "Falta B3" = "Omisiones", "Falta B4" = "Omisiones",
+  "Comi B1"  = "Comisiones", "Comi B2" = "Comisiones",
+  "Comi B3"  = "Comisiones", "Comi B4" = "Comisiones"
+)
+
+bind_rows(
+  lapply(names(vars_bloques), function(bloque) {
+    descriptivos(d2r, vars_bloques[[bloque]]) |>
+      mutate(
+        Bloque   = bloque,
+        Variable = etiquetas_bloque[Variable],
+        .before  = Variable
+      )
+  })
+) |>
+  select(-n) |>
+  kable(
+    booktabs  = TRUE,
+    align     = c("l", "l", "r", "r", "r", "r", "r"),
+    col.names = c("Bloque", "Variable", "Media", "Mediana", "DE", "Mín", "Máx")
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position", "scale_down"),
+    font_size = 10
+  ) |>
+  collapse_rows(columns = 1, latex_hline = "major", valign = "middle")
+```
+
+Los resultados por bloque **(Table 1)** muestran una tendencia descendente en los aciertos a medida que avanza la prueba (Bloque 1: M = 57.25, Bloque 4: M = 52.17), lo que es consistente con el efecto de fatiga atencional esperado en pruebas de atención sostenida. Las omisiones, en contraste, tienden a aumentar progresivamente (Bloque 1: M = 19.75, Bloque 4: M = 24.83), mientras que las comisiones presentan mayor variabilidad entre participantes, especialmente en los bloques intermedios.
+
+## Estadísticos descriptivos totales (prueba D2R)
+
+```{r}
+#| label: tbl-d2r-totales
+#| tbl-cap: "Estadísticos descriptivos D2R (puntuaciones totales)"
+#| echo: false
+
+vars_totales <- c("TR", "O", "C", "E", "TOT", "CON", "VAR")
+
+etiquetas_totales <- c(
+  TR  = "Total respuestas (TR)",
+  O   = "Omisiones totales (O)",
+  C   = "Comisiones totales (C)",
+  E   = "Errores totales (E)",
+  TOT = "Respuestas correctas (TOT)",
+  CON = "Concentración (CON)",
+  VAR = "Variabilidad (VAR)"
+)
+
+descriptivos(d2r, vars_totales) |>
+  mutate(Variable = etiquetas_totales[Variable]) |>
+  select(-n) |>
+  kable(
+    booktabs  = TRUE,
+    align     = c("l", "r", "r", "r", "r", "r"),
+    col.names = c("Variable", "Media", "Mediana", "DE", "Mín", "Máx")
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size = 10
+  )
+```
+
+En términos globales, se puede observar **(Table 2)** que el grupo presentó una media de 114.25 respuestas correctas (TOT) y una concentración media (CON) de 204.75. La desviación estándar en variables como errores totales (E = 51.66) y concentración (CON = 51.66) indica una dispersión considerable entre participantes, lo que sugiere diferencias individuales importantes en el rendimiento atencional del grupo evaluado.
+
+## Gráficos D2R
+
+### Resultados por bloques
+
+```{r}
+#| label: fig-resultado-bloque
+#| fig-cap: "Distribución del resultado por bloque"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(Participante,
+         `Resultado bloque 1`, `Resultado bloque 2`,
+         `Resultado bloque 3`, `Resultado bloque 4`) |>
+  pivot_longer(-Participante, names_to = "Bloque", values_to = "Resultado") |>
+  mutate(Bloque = str_replace(Bloque, "Resultado bloque ", "Bloque ")) |>
+  ggplot(aes(x = Bloque, y = Resultado, fill = Bloque)) +
+  geom_boxplot(alpha = 0.7, show.legend = FALSE) +
+  geom_jitter(width = 0.15, size = 2.5, alpha = 0.7, color = "gray30", show.legend = FALSE) +
+  labs(x = "Bloque", y = "Respuestas correctas") +
+  theme_minimal(base_size = 12) +
+  scale_fill_brewer(palette = "Blues")
+```
+
+### Omisiones y comisiones por bloques
+
+```{r}
+#| label: fig-errores-bloque
+#| fig-cap: "Omisiones y comisiones por bloque"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(Participante,
+         `Falta B1`, `Comi B1`, `Falta B2`, `Comi B2`,
+         `Falta B3`, `Comi B3`, `Falta B4`, `Comi B4`) |>
+  pivot_longer(-Participante, names_to = "key", values_to = "valor") |>
+  mutate(
+    Bloque = case_when(
+      str_ends(key, "1") ~ "Bloque 1",
+      str_ends(key, "2") ~ "Bloque 2",
+      str_ends(key, "3") ~ "Bloque 3",
+      str_ends(key, "4") ~ "Bloque 4"
+    ),
+    Tipo = if_else(str_starts(key, "Falta"), "Omisiones", "Comisiones")
+  ) |>
+  ggplot(aes(x = Bloque, y = valor, fill = Tipo)) +
+  geom_boxplot(alpha = 0.7, position = position_dodge(0.8)) +
+  labs(x = "Bloque", y = "Cantidad", fill = "Tipo de error") +
+  theme_minimal(base_size = 12) +
+  scale_fill_manual(values = c("Omisiones" = "#E07B54", "Comisiones" = "#5B8DB8"))
+```
+
+### Puntuaciones totales
+
+```{r}
+#| label: fig-totales-d2r
+#| fig-cap: "Distribución de puntuaciones totales D2R"
+#| fig-height: 5
+#| echo: false
+
+d2r |>
+  select(all_of(vars_totales)) |>
+  pivot_longer(everything(), names_to = "Variable", values_to = "valor") |>
+  mutate(Variable = etiquetas_totales[Variable]) |>
+  ggplot(aes(x = valor, fill = Variable)) +
+  geom_histogram(bins = 6, color = "white", show.legend = FALSE) +
+  facet_wrap(~Variable, scales = "free", ncol = 3) +
+  labs(x = "Valor", y = "Frecuencia") +
+  theme_minimal(base_size = 10)
+```
+
+\
+Ls graficos **(Figure 1,2 y 3)** muestran que en conjunto, los resultados de la prueba D2R reflejan un patrón típico de fatiga atencional sostenida, donde la precisión disminuye y los errores por omisión aumentan conforme avanza la prueba. Destaca que las comisiones se mantuvieron bajas y estables en todos los bloques, lo que sugiere que los participantes tendieron a responder con cautela antes que de forma impulsiva. La amplia dispersión observada en las puntuaciones totales indica que, si bien el grupo comparte este patrón general, existen diferencias individuales marcadas en la capacidad atencional que podrían estar relacionadas con el nivel de rendimiento deportivo de cada ajedrecista.
+
+------------------------------------------------------------------------
+
+# Prueba de Dígitos
+
+La prueba de Dígitos evalúa la memoria de trabajo y la amplitud atencional en dos modalidades: dígitos en orden directo (DD) e inverso (DI). Se analiza el puntaje total en cada modalidad, el puntaje global y el span (amplitud máxima alcanzada en cada modalidad).
+
+## Estadísticos descriptivos (prueba de dígitos)
+
+```{r}
+#| label: tbl-digitos
+#| tbl-cap: "Estadísticos descriptivos (Prueba de Dígitos)"
+#| echo: false
+
+vars_dig <- c("DD_Total", "DI_Total", "Digitos_Total", "Span_DD", "Span_DI")
+
+etiquetas_dig <- c(
+  DD_Total      = "Dígitos Directos (Total)",
+  DI_Total      = "Dígitos Inversos (Total)",
+  Digitos_Total = "Dígitos Total",
+  Span_DD       = "Span Directo",
+  Span_DI       = "Span Inverso"
+)
+
+descriptivos(digitos, vars_dig) |>
+  mutate(Variable = etiquetas_dig[Variable]) |>
+  select(-n) |>
+  kable(
+    booktabs  = TRUE,
+    align     = c("l", "r", "r", "r", "r", "r"),
+    col.names = c("Variable", "Media", "Mediana", "DE", "Mín", "Máx")
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size = 10
+  )
+  
+```
+
+Se puede observar **(Table 3)** que en la modalidad directa, los participantes obtuvieron una media de 9.75 puntos, mientras que en la modalidad inversa la media fue de 7.83 puntos. Este patrón donde el rendimiento en dígitos directos supera al de inversos es esperado, dado que la modalidad inversa exige mayor manipulación activa de la información en la memoria de trabajo. El span directo promedio fue de 6.25 y el span inverso de 4.33.
+
+## Gráficos Dígitos
+
+### Comparación DD vs DI
+
+```{r}
+#| label: fig-dd-di
+#| fig-cap: "Comparación entre Dígitos Directos e Inversos"
+#| fig-height: 4
+#| echo: false
+
+digitos |>
+  select(DD_Total, DI_Total) |>
+  pivot_longer(everything(), names_to = "Modalidad", values_to = "Total") |>
+  mutate(Modalidad = case_when(
+    Modalidad == "DD_Total" ~ "Directos",
+    Modalidad == "DI_Total" ~ "Inversos"
+  )) |>
+  ggplot(aes(x = Modalidad, y = Total, fill = Modalidad)) +
+  geom_boxplot(alpha = 0.7, show.legend = FALSE) +
+  geom_jitter(width = 0.15, size = 2.5, alpha = 0.7, color = "gray30", show.legend = FALSE) +
+  labs(x = "Modalidad", y = "Puntaje total") +
+  theme_minimal(base_size = 12) +
+  scale_fill_manual(values = c("Directos" = "#6BAED6", "Inversos" = "#FD8D3C"))
+```
+
+### Span por participante
+
+```{r}
+#| label: fig-span
+#| fig-cap: "Span directo e inverso por participante"
+#| fig-height: 4
+#| echo: false
+
+digitos |>
+  select(Codigo, Span_DD, Span_DI) |>
+  mutate(Codigo = factor(Codigo, levels = c("A1","A2","A3","A4","A5",
+                                             "A6","A7","A8","A9","A10",
+                                             "A11","A12"))) |>
+  pivot_longer(-Codigo, names_to = "Tipo", values_to = "Span") |>
+  mutate(Tipo = case_when(
+    Tipo == "Span_DD" ~ "Span Directo",
+    Tipo == "Span_DI" ~ "Span Inverso"
+  )) |>
+  ggplot(aes(x = Codigo, y = Span, fill = Tipo)) +
+  geom_col(position = position_dodge(0.7), width = 0.6, alpha = 0.85) +
+  labs(x = "Participante", y = "Span", fill = "") +
+  theme_minimal(base_size = 11) +
+  scale_fill_manual(values = c("Span Directo" = "#6BAED6", "Span Inverso" = "#FD8D3C")) +
+  theme(legend.position = "top")
+```
+
+### Puntaje total por participante
+
+```{r}
+#| label: fig-digitos-total-part
+#| fig-cap: "Puntaje total en Dígitos por participante"
+#| fig-height: 4
+#| echo: false
+
+digitos |>
+  mutate(Codigo = factor(Codigo, levels = paste0("A", 1:12))) |>
+  ggplot(aes(x = Codigo, y = Digitos_Total)) +
+  geom_col(fill = "#6BAED6", alpha = 0.85, width = 0.65) +
+  labs(x = "Participante", y = "Puntaje total Dígitos") +
+  theme_minimal(base_size = 11)
+```
+
+En conjunto, los gráficos de la prueba de Dígitos **(Figure 4,5 y 6)** muestran que la brecha entre la modalidad directa e inversa es consistente en casi todos los participantes, siendo el span directo sistemáticamente mayor que el inverso a lo largo del grupo. Sin embargo, el gráfico de puntaje total por participante revela una distribución relativamente homogénea entre la mayoría, con la excepción notable de A8, quien destaca claramente por encima del resto. Esta variabilidad individual sugiere que, si bien la memoria de trabajo se mantiene en rangos similares para la mayoría del grupo, hay participantes con una capacidad de manipulación y retención de información considerablemente superior, lo que podría tener implicaciones relevantes al comparar con el nivel ELO.
+
+# Relación entre ELO y variables cognitivas
+
+En esta sección se explora la relación entre el nivel ELO de los ajedrecistas y las categorías de interpretación obtenidas en las pruebas cognitivas D2R y Dígitos. Los participantes con ELO ≥ 2000 corresponden a primera categoría (n = 7: A1, A2, A3, A6, A7, A8, A9), y los de ELO \< 2000 a segunda categoría (n = 5: A4, A5, A10, A11, A12).
+
+## Comparación de medias por grupo ELO (Prueba D2R)
+
+```{r}
+#| label: tbl-comparacion-d2r
+#| tbl-cap: "Medias de variables D2R según ELO"
+#| echo: false
+#| warning: false
+
+vars_comp <- c("TR", "O", "C", "E", "TOT", "CON", "VAR")
+
+etiq_comp <- c(
+  TR = "Total respuestas (TR)", O = "Omisiones (O)",
+  C = "Comisiones (C)", E = "Errores totales (E)",
+  TOT = "Respuestas correctas (TOT)", CON = "Concentración (CON)",
+  VAR = "Variabilidad (VAR)"
+)
+
+d2r |>
+  mutate(Grupo_ELO = if_else(ELO >= 2000,
+                             "ELO ≥ 2000 (1ª cat)",
+                             "ELO < 2000 (2ª cat)")) |>
+  select(Grupo_ELO, all_of(vars_comp)) |>
+  pivot_longer(-Grupo_ELO, names_to = "Variable", values_to = "valor") |>
+  group_by(Variable, Grupo_ELO) |>
+  summarise(Media = round(mean(valor, na.rm = TRUE), 2),
+            DE    = round(sd(valor, na.rm = TRUE), 2),
+            .groups = "drop") |>
+  mutate(Variable = etiq_comp[Variable]) |>
+  pivot_wider(names_from = Grupo_ELO,
+              values_from = c(Media, DE),
+              names_glue = "{Grupo_ELO}_{.value}") |>
+  select(Variable,
+         `ELO ≥ 2000 (1ª cat)_Media`, `ELO ≥ 2000 (1ª cat)_DE`,
+         `ELO < 2000 (2ª cat)_Media`,  `ELO < 2000 (2ª cat)_DE`) |>
+  kable(
+    booktabs  = TRUE,
+    align     = c("l", "r", "r", "r", "r"),
+    col.names = c("Variable", "Media", "DE", "Media", "DE"),
+    digits    = 2
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position", "scale_down"),
+    font_size = 10
+  ) |>
+  add_header_above(c(" " = 1,
+                     "ELO ≥ 2000 (1ª cat.)" = 2,
+                     "ELO < 2000 (2ª cat.)" = 2))
+```
+
+## Comparación de medias por grupo ELO (Prueba de Dígitos)
+
+```{r}
+#| label: tbl-comparacion-digitos
+#| tbl-cap: "Medias de variables en Dígitos según ELO"
+#| echo: false
+
+vars_dig_comp <- c("DD_Total", "DI_Total", "Digitos_Total", "Span_DD", "Span_DI")
+
+etiq_dig_comp <- c(
+  DD_Total      = "Dígitos Directos",
+  DI_Total      = "Dígitos Inversos",
+  Digitos_Total = "Total Dígitos",
+  Span_DD       = "Span Directo",
+  Span_DI       = "Span Inverso"
+)
+
+digitos |>
+  left_join(d2r |> select(Participante, ELO),
+            by = c("Codigo" = "Participante")) |>
+  mutate(Grupo_ELO = if_else(ELO >= 2000,
+                             "ELO ≥ 2000 (1ª cat)",
+                             "ELO < 2000 (2ª cat)")) |>
+  select(Grupo_ELO, all_of(vars_dig_comp)) |>
+  pivot_longer(-Grupo_ELO, names_to = "Variable", values_to = "valor") |>
+  group_by(Variable, Grupo_ELO) |>
+  summarise(Media = round(mean(valor, na.rm = TRUE), 2),
+            DE    = round(sd(valor, na.rm = TRUE), 2),
+            .groups = "drop") |>
+  mutate(Variable = etiq_dig_comp[Variable]) |>
+  pivot_wider(names_from = Grupo_ELO,
+              values_from = c(Media, DE),
+              names_glue = "{Grupo_ELO}_{.value}") |>
+  select(Variable,
+         `ELO ≥ 2000 (1ª cat)_Media`, `ELO ≥ 2000 (1ª cat)_DE`,
+         `ELO < 2000 (2ª cat)_Media`,  `ELO < 2000 (2ª cat)_DE`) |>
+  kable(
+    booktabs  = TRUE,
+    align     = c("l", "r", "r", "r", "r"),
+    col.names = c("Variable", "Media", "DE", "Media", "DE"),
+    digits    = 2
+  ) |>
+  kable_styling(
+    latex_options = c("striped", "hold_position"),
+    font_size = 10
+  ) |>
+  add_header_above(c(" " = 1,
+                     "ELO ≥ 2000 (1ª cat.)" = 2,
+                     "ELO < 2000 (2ª cat.)" = 2))
+```
+
+La comparación entre grupos **(Table 4 y 5)** muestra diferencias observables en varias variables cognitivas. En la prueba D2R, los ajedrecistas de segunda categoría (ELO \< 2000) obtuvieron una media mayor en respuestas correctas (TOT = 132.6) respecto a los de primera categoría (TOT = 101.14), así como una mayor concentración media (CON = 216.4 vs 196.43). Sin embargo, el grupo de primera categoría presentó una desviación estándar notablemente más alta en estas variables, lo que indica una mayor heterogeneidad interna y sugiere que este grupo incluye tanto perfiles de alto rendimiento atencional como perfiles más bajos. En la prueba de Dígitos, el grupo de primera categoría mostró medias superiores en todas las variables, con un total de dígitos de 19.00 frente a 15.6 del grupo de segunda categoría, y un span directo de 6.86 vs 5.4, lo que apunta a una mayor capacidad de memoria de trabajo en los ajedrecistas de mayor nivel ELO. Es importante considerar que el tamaño reducido de la muestra (n = 12) limita la generalización de estas diferencias.
+
+## Velocidad de procesamiento
+
+```{r}
+#| label: fig-elo-velocidad
+#| fig-cap: "ELO según categoría de velocidad de procesamiento"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(ELO, `INTERPRETACIÓN Velocidad procesamiento`) |>
+  rename(Categoria = `INTERPRETACIÓN Velocidad procesamiento`) |>
+  mutate(Categoria = factor(Categoria, levels = c("Baja", "Media", "Media-alta", 
+                                                   "Alta", "Muy alta"))) |>
+  ggplot(aes(x = Categoria, y = ELO, color = Categoria)) +
+  geom_point(size = 4, alpha = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = "gray50") +
+  labs(x = "Categoría", y = "ELO") +
+  theme_minimal(base_size = 12)
+```
+
+## Atención selectiva
+
+```{r}
+#| label: fig-elo-atencion
+#| fig-cap: "ELO según categoría de atención selectiva"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(ELO, `INTERPRETACIÓN atención selectiva`) |>
+  rename(Categoria = `INTERPRETACIÓN atención selectiva`) |>
+  mutate(Categoria = factor(Categoria, levels = c("Muy bajo", "Bajo", "Baja", 
+                                                   "Media", "Alta", "Muy alta"))) |>
+  ggplot(aes(x = Categoria, y = ELO, color = Categoria)) +
+  geom_point(size = 4, alpha = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = "gray50") +
+  labs(x = "Categoría", y = "ELO") +
+  theme_minimal(base_size = 12)
+```
+
+## Concentración
+
+```{r}
+#| label: fig-elo-concentracion
+#| fig-cap: "ELO según categoría de concentración"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(ELO, `INTERPRETACIÓN concentración`) |>
+  rename(Categoria = `INTERPRETACIÓN concentración`) |>
+  mutate(Categoria = factor(Categoria, levels = c("Bajo", "Media", "Alto", 
+                                                   "Muy alto"))) |>
+  ggplot(aes(x = Categoria, y = ELO, color = Categoria)) +
+  geom_point(size = 4, alpha = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = "gray50") +
+  labs(x = "Categoría", y = "ELO") +
+  theme_minimal(base_size = 12)
+```
+
+## Interpretación Dígitos
+
+```{r}
+#| label: fig-elo-digitos
+#| fig-cap: "ELO según categoría de interpretación en Dígitos"
+#| fig-height: 4
+#| echo: false
+
+d2r |>
+  select(Participante, ELO) |>
+  left_join(
+    digitos |> select(Codigo, Interpretación),
+    by = c("Participante" = "Codigo")
+  ) |>
+  rename(Categoria = Interpretación) |>
+  mutate(Categoria = factor(Categoria, levels = c("Bajo", "Medio", "Alto"))) |>
+  ggplot(aes(x = Categoria, y = ELO, color = Categoria)) +
+  geom_point(size = 4, alpha = 0.8, show.legend = FALSE) +
+  geom_hline(yintercept = 2000, linetype = "dashed", color = "gray50") +
+  labs(x = "Categoría", y = "ELO") +
+  theme_minimal(base_size = 12)
+```
+
+# Conclusión
+
+Los resultados obtenidos ofrecen una respuesta parcialmente mixta frente a la hipótesis planteada, que esperaba encontrar una correlación positiva entre el desempeño cognitivo y el nivel ELO. En lo que respecta a la memoria de trabajo evaluada mediante la prueba de Dígitos, los gráficos muestran una tendencia que sí apoya la hipótesis: el único participante clasificado en la categoría Alto se ubica por encima de ELO 2000, y los participantes con categoría Bajo se concentran mayoritariamente por debajo de esta línea, lo que sugiere que una mayor capacidad de memoria de trabajo podría estar asociada a un mayor nivel de juego.
+
+Sin embargo, en las variables de atención evaluadas por la prueba D2R, la relación no es tan clara. En velocidad de procesamiento y concentración, se observa que participantes con categorías medias o altas se distribuyen tanto por encima como por debajo de ELO 2000, sin un patrón definido. En atención selectiva, la dispersión es aún mayor, con participantes de ELO elevado ubicados en categorías bajas y viceversa.
+
+En conjunto, los datos sugieren que la relación entre rendimiento cognitivo y nivel ELO no es uniforme en todas las capacidades evaluadas. La memoria de trabajo parece tener una asociación más consistente con el nivel de juego que la atención sostenida o selectiva. No obstante, el tamaño reducido de la muestra (n = 12) impide confirmar o rechazar la hipótesis de forma concluyente, por lo que estos hallazgos deben interpretarse como tendencias exploratorias que justifican investigaciones futuras con muestras más amplias.
