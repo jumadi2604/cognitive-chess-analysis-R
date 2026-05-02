@@ -3,7 +3,7 @@
 > 🇬🇧 **English summary:** Freelance statistical consulting project 
 > analyzing the relationship between cognitive performance 
 > (attention, working memory) and competitive chess level (ELO) 
-> in Antioqui/Colombian elite players. Built with R and Quarto.
+> in Antioquia/Colombian elite players. Built with R and Quarto.
 
 ---
 
